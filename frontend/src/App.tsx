@@ -5,11 +5,13 @@ import { Button, Col, Container, Row } from 'react-bootstrap';
 import styles from './styles/NotesPage.module.css';
 import styleUtils from './styles/utils.module.css';
 import * as NotesApi from './network/notes_api';
-import AddNoteForm from './components/AddNoteForm';
+import AddEditNoteForm from './components/AddEditNoteForm';
+import { FaPlus } from 'react-icons/fa';
 
 function App() {
 	const [notes, setNotes] = useState<NoteModel[]>([]);
 	const [showAddNoteForm, setShowAddNoteForm] = useState(false);
+	const [noteToEdit, setNoteToEdit] = useState<NoteModel | null>(null);
 
 	useEffect(() => {
 		async function loadNotes() {
@@ -24,27 +26,59 @@ function App() {
 		loadNotes();
 	}, []);
 
+	async function deleteNote(note: NoteModel) {
+		try {
+			await NotesApi.deleteNote(note._id);
+			setNotes(notes.filter((existingNote) => existingNote._id !== note._id));
+		} catch (error) {
+			console.error(error);
+			alert(error);
+		}
+	}
+
 	return (
 		<Container>
 			<Button
-				className={`mb-4 ${styleUtils.blockCenter}`}
+				className={`mb-4 ${styleUtils.blockCenter} ${styleUtils.flexCenter}`}
 				onClick={() => setShowAddNoteForm(true)}
 			>
+				<FaPlus />
 				Add new note
 			</Button>
 			<Row xs={1} md={2} xl={3} className='g-4'>
 				{notes.map((note) => (
 					<Col key={note._id}>
-						<Note note={note} className={styles.note} />
+						<Note
+							note={note}
+							className={styles.note}
+							onNoteClicked={setNoteToEdit}
+							onDeleteNoteClicked={deleteNote}
+						/>
 					</Col>
 				))}
 			</Row>
 			{showAddNoteForm && (
-				<AddNoteForm
+				<AddEditNoteForm
 					onDismiss={() => setShowAddNoteForm(false)}
-					onNoteSaved={(newNote) => {
+					onNoteSaved={(newNote: NoteModel) => {
 						setNotes([...notes, newNote]);
 						setShowAddNoteForm(false);
+					}}
+				/>
+			)}
+			{noteToEdit && (
+				<AddEditNoteForm
+					noteToEdit={noteToEdit}
+					onDismiss={() => setNoteToEdit(null)}
+					onNoteSaved={(updatedNote) => {
+						setNotes(
+							notes.map((existingNote) =>
+								existingNote._id === updatedNote._id
+									? updatedNote
+									: existingNote
+							)
+						);
+						setNoteToEdit(null);
 					}}
 				/>
 			)}

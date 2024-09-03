@@ -4,21 +4,37 @@ import { NoteInput } from '../network/notes_api';
 import { useForm } from 'react-hook-form';
 import * as NotesApi from '../network/notes_api';
 
-interface AddNoteFormProps {
+interface AddEditNoteFormProps {
+	noteToEdit?: Note;
 	onDismiss: () => void;
 	onNoteSaved: (note: Note) => void;
 }
 
-const AddNoteForm = ({ onDismiss, onNoteSaved }: AddNoteFormProps) => {
+const AddEditNoteForm = ({
+	noteToEdit,
+	onDismiss,
+	onNoteSaved,
+}: AddEditNoteFormProps) => {
 	const {
 		register,
 		handleSubmit,
 		formState: { errors, isSubmitting },
-	} = useForm<NoteInput>();
+	} = useForm<NoteInput>({
+		defaultValues: {
+			title: noteToEdit?.title || '',
+			text: noteToEdit?.text || '',
+		},
+	});
 
 	async function onSubmit(input: NoteInput) {
 		try {
-			const noteResponse = await NotesApi.createNote(input);
+			let noteResponse: Note;
+			if (noteToEdit) {
+				noteResponse = await NotesApi.updateNote(noteToEdit._id, input);
+			} else {
+				noteResponse = await NotesApi.createNote(input);
+			}
+
 			onNoteSaved(noteResponse);
 		} catch (error) {
 			console.error(error);
@@ -29,11 +45,11 @@ const AddNoteForm = ({ onDismiss, onNoteSaved }: AddNoteFormProps) => {
 	return (
 		<Modal show onHide={onDismiss}>
 			<Modal.Header>
-				<Modal.Title>Add Note</Modal.Title>
+				<Modal.Title>{noteToEdit ? 'Edit note' : 'Add note'}</Modal.Title>
 			</Modal.Header>
 
 			<Modal.Body>
-				<Form id='addNoteForm' onSubmit={handleSubmit(onSubmit)}>
+				<Form id='addEditNoteForm' onSubmit={handleSubmit(onSubmit)}>
 					<Form.Group className='mb-3'>
 						<Form.Label>Title</Form.Label>
 						<Form.Control
@@ -58,11 +74,11 @@ const AddNoteForm = ({ onDismiss, onNoteSaved }: AddNoteFormProps) => {
 				</Form>
 			</Modal.Body>
 			<Modal.Footer>
-				<Button type='submit' form='addNoteForm' disabled={isSubmitting}>
+				<Button type='submit' form='addEditNoteForm' disabled={isSubmitting}>
 					Save
 				</Button>
 			</Modal.Footer>
 		</Modal>
 	);
 };
-export default AddNoteForm;
+export default AddEditNoteForm;
