@@ -105,3 +105,13 @@ export const login: RequestHandler<
 		next(error);
 	}
 };
+
+export const logout: RequestHandler = (req, res, next) => {
+	req.session.destroy((error) => {
+		if (error) {
+			next(error);
+		} else {
+			res.sendStatus(200);
+		}
+	});
+};
